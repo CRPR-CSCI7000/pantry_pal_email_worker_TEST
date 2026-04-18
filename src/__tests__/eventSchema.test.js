@@ -5,7 +5,7 @@ const { validateEvent, SUPPORTED_SCHEMA_VERSION } = require('../models/eventSche
 // ─── Valid fixtures ────────────────────────────────────────────────────────────
 
 const validAddedEnvelope = {
-  schema_version: '1.0.0',
+  schema_version: '2.0.0',
   event_type: 'pantry.item.added',
   occurred_at: '2025-01-15T10:00:00+00:00',
   payload: {

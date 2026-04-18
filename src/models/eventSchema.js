@@ -4,7 +4,7 @@
  * THIS FILE IS THE SOURCE OF TRUTH for the event contract between
  * the Django backend (producer) and this worker (consumer).
  *
- * Schema version: 1.0.0
+ * Schema version: 2.0.0
  *
  * Any change here that is not backwards-compatible is a DATA SCHEMA BREAK
  * and must be coordinated with the backend's services/email_service.py.
@@ -56,7 +56,7 @@
 
 'use strict';
 
-const SUPPORTED_SCHEMA_VERSION = '1.0.0';
+const SUPPORTED_SCHEMA_VERSION = '2.0.0';
 
 const SUPPORTED_EVENTS = new Set([
   'pantry.item.added',
