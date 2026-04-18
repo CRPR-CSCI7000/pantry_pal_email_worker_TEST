@@ -11,7 +11,7 @@ jest.mock('../services/emailService', () => ({
 }));
 
 const VALID_ADDED = {
-  schema_version: '1.0.0',
+  schema_version: '2.0.0',
   event_type: 'pantry.item.added',
   occurred_at: '2025-01-01T00:00:00.000Z',
   payload: {
