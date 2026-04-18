@@ -60,7 +60,6 @@ const SUPPORTED_SCHEMA_VERSION = '1.0.0';
 
 const SUPPORTED_EVENTS = new Set([
   'pantry.item.added',
-  'pantry.item.removed',
   'pantry.item.expiring_soon',
 ]);
 
@@ -77,7 +76,6 @@ const PAYLOAD_REQUIRED = {
     'user_id', 'username', 'email', 'pantry_id',
     'product_name', 'product_upc', 'quantity', 'quantity_type',
   ],
-  'pantry.item.removed': ['user_id', 'username', 'email', 'pantry_id', 'product_name'],
   'pantry.item.expiring_soon': ['user_id', 'email', 'items'],
 };
 
