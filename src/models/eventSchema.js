@@ -54,31 +54,38 @@
  * }
  */
 
-'use strict';
+"use strict";
 
-const SUPPORTED_SCHEMA_VERSION = '1.0.0';
+const SUPPORTED_SCHEMA_VERSION = "1.0.0";
 
+// BREAK: 'pantry.item.removed' dropped from SUPPORTED_EVENTS
 const SUPPORTED_EVENTS = new Set([
-  'pantry.item.added',
-  'pantry.item.removed',
-  'pantry.item.expiring_soon',
+  "pantry.item.added",
+  "pantry.item.expiring_soon",
 ]);
 
-/**
- * Required top-level envelope fields.
- */
-const ENVELOPE_REQUIRED = ['schema_version', 'event_type', 'occurred_at', 'payload'];
+const ENVELOPE_REQUIRED = [
+  "schema_version",
+  "event_type",
+  "occurred_at",
+  "payload",
+];
 
 /**
  * Required payload fields per event type.
  */
 const PAYLOAD_REQUIRED = {
-  'pantry.item.added': [
-    'user_id', 'username', 'email', 'pantry_id',
-    'product_name', 'product_upc', 'quantity', 'quantity_type',
+  "pantry.item.added": [
+    "user_id",
+    "username",
+    "email",
+    "pantry_id",
+    "product_name",
+    "product_upc",
+    "quantity",
+    "quantity_type",
   ],
-  'pantry.item.removed': ['user_id', 'username', 'email', 'pantry_id', 'product_name'],
-  'pantry.item.expiring_soon': ['user_id', 'email', 'items'],
+  "pantry.item.expiring_soon": ["user_id", "email", "items"],
 };
 
 /**
@@ -90,7 +97,10 @@ function validateEvent(body) {
   // Check envelope fields
   for (const field of ENVELOPE_REQUIRED) {
     if (body[field] === undefined || body[field] === null) {
-      return { valid: false, error: `Missing required envelope field: ${field}` };
+      return {
+        valid: false,
+        error: `Missing required envelope field: ${field}`,
+      };
     }
   }
 
@@ -104,14 +114,20 @@ function validateEvent(body) {
 
   // Event type check
   if (!SUPPORTED_EVENTS.has(body.event_type)) {
-    return { valid: false, error: `Unsupported event_type: ${body.event_type}` };
+    return {
+      valid: false,
+      error: `Unsupported event_type: ${body.event_type}`,
+    };
   }
 
   // Payload field check
   const required = PAYLOAD_REQUIRED[body.event_type] || [];
   for (const field of required) {
     if (body.payload[field] === undefined || body.payload[field] === null) {
-      return { valid: false, error: `Missing required payload field: ${field}` };
+      return {
+        valid: false,
+        error: `Missing required payload field: ${field}`,
+      };
     }
   }
 

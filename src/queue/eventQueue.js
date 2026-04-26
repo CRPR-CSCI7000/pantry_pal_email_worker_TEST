@@ -3,19 +3,21 @@
 const logger = require("../config/logger");
 
 /**
- * Simple in-process async queue with retry support.
+ * In-process async queue with retry, dead-letter logging, and stale-job eviction.
  *
- * In production you would swap this for SQS, RabbitMQ, Redis streams, etc.
- * The interface here is kept intentionally simple so that swap is a 1-file change.
+ * Swap this for SQS / RabbitMQ / Redis streams in production —
+ * the enqueue/depth interface is intentionally stable.
  */
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
+const MAX_JOB_AGE_MS = 5 * 60 * 1000; // 5 minutes — stale jobs are evicted
 
 class EventQueue {
   constructor() {
     this._queue = [];
     this._processing = false;
+    this._deadLetters = [];
   }
 
   /**
@@ -38,14 +40,42 @@ class EventQueue {
     this._drain();
   }
 
-  /** Queue depth — useful for health checks. */
+  /** Current queue depth — exposed on /health. */
   get depth() {
     return this._queue.length;
+  }
+
+  /** Dead-letter count — jobs that exhausted all retries. */
+  get deadLetterCount() {
+    return this._deadLetters.length;
+  }
+
+  /** Evict jobs older than MAX_JOB_AGE_MS that haven't started processing. */
+  _evictStale() {
+    const now = Date.now();
+    const before = this._queue.length;
+    this._queue = this._queue.filter((job) => {
+      const age = now - job.enqueuedAt;
+      if (age > MAX_JOB_AGE_MS) {
+        logger.warn("Evicting stale job", {
+          event_type: job.envelope.event_type,
+          requestId: job.requestId,
+          ageMs: age,
+        });
+        this._deadLetters.push({ ...job, evictedAt: now, reason: "stale" });
+        return false;
+      }
+      return true;
+    });
+    if (this._queue.length < before) {
+      logger.info(`Evicted ${before - this._queue.length} stale job(s)`);
+    }
   }
 
   async _drain() {
     if (this._processing) return;
     this._processing = true;
+    this._evictStale();
 
     while (this._queue.length > 0) {
       const job = this._queue.shift();
@@ -77,18 +107,25 @@ class EventQueue {
       });
 
       if (job.attempts < MAX_RETRIES) {
+        const delayMs = RETRY_DELAY_MS * job.attempts;
         logger.info("Scheduling retry", {
           event_type: envelope.event_type,
           requestId,
           nextAttempt: job.attempts + 1,
-          delayMs: RETRY_DELAY_MS * job.attempts,
+          delayMs,
         });
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * job.attempts));
-        this._queue.unshift(job); // re-queue at front for next drain cycle
+        await new Promise((r) => setTimeout(r, delayMs));
+        this._queue.unshift(job);
       } else {
-        logger.error("Event exhausted retries — dropping", {
+        logger.error("Event exhausted retries — sending to dead-letter store", {
           event_type: envelope.event_type,
           requestId,
+        });
+        this._deadLetters.push({
+          ...job,
+          failedAt: Date.now(),
+          reason: "max_retries",
+          lastError: err.message,
         });
       }
     }
